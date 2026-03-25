@@ -1,0 +1,27 @@
+# Rust
+/target/
+Cargo.lock
+
+# Data (too large for git)
+/data/
+*.tar.zst
+
+# Node / Next.js
+web/node_modules/
+web/.next/
+web/out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

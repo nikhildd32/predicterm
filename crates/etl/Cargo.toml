@@ -1,0 +1,16 @@
+[package]
+name = "predicterm-etl"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "etl"
+path = "src/main.rs"
+
+[dependencies]
+predicterm-core = { path = "../core" }
+duckdb = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+chrono = { workspace = true }
