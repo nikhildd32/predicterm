@@ -1,6 +1,9 @@
 # Rust
 /target/
 
+# DuckDB temp
+.tmp/
+
 # Data (too large for git)
 /data/
 *.tar.zst

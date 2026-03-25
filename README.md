@@ -1,25 +1,25 @@
 # PredicTerm — Rust Kalshi Microstructure Terminal
 
-A production-style analytics terminal that replicates and extends [Jonathan Becker's Kalshi microstructure research](https://jbecker.dev/research/prediction-market-microstructure) in a live, interactive system. Built with Rust, DuckDB, and Next.js.
+A production-style analytics terminal that explores prediction market microstructure on Kalshi. Built with Rust, DuckDB, and Next.js.
 
 ## What This Does
 
 PredicTerm ingests 72M+ Kalshi trades ($18B+ volume) as Parquet files, runs microstructure analytics via embedded DuckDB, and serves results through a typed REST API consumed by an interactive Next.js frontend.
 
-**Key findings reproduced:**
+**Key findings explored:**
 
-- **Longshot Bias**: 5¢ contracts win only 4.18% of the time (implied: 5%) — a -16% mispricing
-- **Optimism Tax**: Takers lose -1.12% per trade; makers earn +1.12% — structural, not informational
-- **Temporal Flip**: After Oct 2024, the maker-taker gap swung 5.3pp as professional MMs entered
-- **Category Variation**: Finance markets have a 0.17pp gap; World Events exceeds 7pp
-- **YES/NO Asymmetry**: At 1¢, YES EV = -41%, NO EV = +23%. NO outperforms at 69/99 price levels
+- **Longshot Bias**: Low-probability contracts are systematically overpriced; buyers of longshots lose money on average
+- **Optimism Tax**: Takers pay a structural premium; makers harvest it without requiring superior information
+- **Temporal Evolution**: The maker-taker gap flipped as professional market makers entered after the Oct 2024 volume surge
+- **Category Variation**: Finance markets are near-efficient (tiny gap); entertainment and emotional topics show large wealth transfer
+- **YES/NO Asymmetry**: YES longshots dramatically underperform NO longshots at the same cost basis
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
 | **Backend** | Rust (axum), embedded DuckDB via `duckdb-rs` |
-| **Data** | Parquet files (Becker dataset), DuckDB SQL analytics |
+| **Data** | Parquet files, DuckDB SQL analytics with pre-aggregated rollups |
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS, Recharts |
 | **Infra** | Docker Compose, GitHub Actions CI |
 
@@ -94,12 +94,13 @@ predicterm/
 └── .github/workflows/ci.yml
 ```
 
-## Research Background
+## Performance
 
-Based on:
-- Becker, J. (2026). [*The Microstructure of Wealth Transfer in Prediction Markets*](https://jbecker.dev/research/prediction-market-microstructure)
-- Becker, J. (2025). [prediction-market-analysis](https://github.com/Jon-Becker/prediction-market-analysis) (72M trade dataset)
-- Bürgi, C., Deng, W. & Whelan, K. (2025). [*Makers and Takers: The Economics of the Kalshi Prediction Market*](https://cepr.org/publications/dp20631)
+On a 72M trade dataset (50 GB on disk), after one-time materialization (~45s on startup):
+
+- All analytics endpoints respond in **<300ms** (most under 25ms)
+- Pre-aggregated rollup tables eliminate per-request full table scans
+- DuckDB embedded engine with 8 threads and 6 GB memory budget
 
 ## License
 

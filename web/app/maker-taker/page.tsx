@@ -16,8 +16,8 @@ export default function MakerTakerPage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">Maker-Taker Wealth Transfer</h1>
         <p className="text-sm opacity-60">
-          Becker Table 1 / Figure 2 — the core &ldquo;Optimism Tax&rdquo; finding.
-          Takers pay a structural premium; makers harvest it without superior information.
+          The core &ldquo;Optimism Tax&rdquo; finding: takers pay a structural premium
+          and makers harvest it without requiring superior forecasting ability.
         </p>
       </div>
 

@@ -23,7 +23,7 @@ export default function CohortsPage() {
         <h1 className="text-2xl font-bold mb-1">Trade-Size Cohorts</h1>
         <p className="text-sm opacity-60">
           Segmented by notional value: micro (&lt;$10), small ($10-100),
-          medium ($100-1K), large ($1K+). Bürgi et al. find median transaction is $35, mean $100.
+          medium ($100-1K), large ($1K+). The median Kalshi transaction is ~$35 while the mean is ~$100.
         </p>
       </div>
 

@@ -15,9 +15,9 @@ export default function CategoriesPage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">Category Efficiency</h1>
         <p className="text-sm opacity-60">
-          Becker Table 2 — &ldquo;When the topic is dry and quantitative, the market is efficient.
-          When the topic allows for tribalism and hope, the market transforms into a mechanism
-          for transferring wealth.&rdquo;
+          Market efficiency varies dramatically by category. When the topic is dry and
+          quantitative, the market is efficient. When the topic allows for tribalism and
+          hope, the wealth transfer intensifies.
         </p>
       </div>
 

@@ -21,8 +21,12 @@ pub fn build_filter_summary(f: &FilterParams) -> FilterSummary {
 }
 
 /// Build a WHERE clause fragment from filter params.
+/// Always excludes boundary prices where division by zero would occur.
 pub fn build_where_clause(f: &FilterParams) -> String {
-    let mut conditions = vec!["taker_price BETWEEN 1 AND 99".to_string()];
+    let mut conditions = vec![
+        "taker_price BETWEEN 1 AND 99".to_string(),
+        "maker_price BETWEEN 1 AND 99".to_string(),
+    ];
 
     if let Some(ref cat) = f.category {
         conditions.push(format!("event_prefix = '{cat}'"));

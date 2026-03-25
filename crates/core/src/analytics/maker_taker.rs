@@ -2,36 +2,25 @@ use anyhow::Result;
 use duckdb::Connection;
 
 use crate::models::{FilterParams, MakerTakerPoint, MakerTakerResponse};
-use super::{build_filter_summary, build_where_clause};
+use super::build_filter_summary;
 
-/// Maker-taker wealth transfer by price bucket (Becker Table 1/Figure 2, spec §2.2)
 pub fn query_maker_taker(conn: &Connection, params: &FilterParams) -> Result<MakerTakerResponse> {
     let bucket_width = params.bucket_width.unwrap_or(10) as i32;
-    let where_clause = build_where_clause(params);
 
     let sql = format!(
         r#"
-        WITH role_returns AS (
-            SELECT
-                taker_price,
-                (taker_won * 100.0 - taker_price) / taker_price AS taker_return,
-                (maker_won * 100.0 - maker_price) / maker_price AS maker_return,
-                count AS n_contracts,
-                taker_notional
-            FROM enriched_trades
-            WHERE {where_clause}
-        )
         SELECT
-            CAST(FLOOR((taker_price - 1) / {bucket_width}) * {bucket_width} + 1 AS INTEGER) AS bucket_low,
-            CAST(FLOOR((taker_price - 1) / {bucket_width}) * {bucket_width} + {bucket_width} AS INTEGER) AS bucket_high,
-            COUNT(*) AS n_trades,
-            AVG(taker_return) AS avg_taker_return,
-            AVG(maker_return) AS avg_maker_return,
-            AVG(maker_return) - AVG(taker_return) AS gap_pp,
-            SUM(taker_return * taker_notional) / NULLIF(SUM(taker_notional), 0) AS vw_taker_return,
-            SUM(maker_return * taker_notional) / NULLIF(SUM(taker_notional), 0) AS vw_maker_return
-        FROM role_returns
-        GROUP BY FLOOR((taker_price - 1) / {bucket_width})
+            CAST(FLOOR((price_cent - 1) / {bucket_width}) * {bucket_width} + 1 AS INTEGER) AS bucket_low,
+            CAST(FLOOR((price_cent - 1) / {bucket_width}) * {bucket_width} + {bucket_width} AS INTEGER) AS bucket_high,
+            SUM(n_trades) AS n_trades,
+            SUM(avg_taker_excess_return * n_trades) / SUM(n_trades) AS avg_taker_return,
+            SUM(avg_maker_excess_return * n_trades) / SUM(n_trades) AS avg_maker_return,
+            SUM(avg_maker_excess_return * n_trades) / SUM(n_trades)
+              - SUM(avg_taker_excess_return * n_trades) / SUM(n_trades) AS gap_pp,
+            SUM(vw_taker_return_num) / NULLIF(SUM(total_notional), 0) AS vw_taker_return,
+            SUM(vw_maker_return_num) / NULLIF(SUM(total_notional), 0) AS vw_maker_return
+        FROM agg_calibration_per_cent
+        GROUP BY FLOOR((price_cent - 1) / {bucket_width})
         ORDER BY bucket_low
         "#
     );
@@ -52,28 +41,16 @@ pub fn query_maker_taker(conn: &Connection, params: &FilterParams) -> Result<Mak
 
     let points: Vec<MakerTakerPoint> = rows.filter_map(|r| r.ok()).collect();
 
-    // Aggregates
-    let agg_sql = format!(
-        r#"
-        SELECT
-            COUNT(*) AS total_trades,
-            SUM(taker_notional) / 100.0 AS total_volume_usd,
-            AVG((taker_won * 100.0 - taker_price) / taker_price) AS agg_taker_return,
-            AVG((maker_won * 100.0 - maker_price) / maker_price) AS agg_maker_return
-        FROM enriched_trades
-        WHERE {where_clause}
-        "#
-    );
-
-    let (total_trades, total_volume, agg_taker, agg_maker) =
-        conn.query_row(&agg_sql, [], |row| {
-            Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, f64>(1).unwrap_or(0.0),
-                row.get::<_, f64>(2).unwrap_or(0.0),
-                row.get::<_, f64>(3).unwrap_or(0.0),
-            ))
-        })?;
+    let (total_trades, total_volume, agg_taker, agg_maker) = conn.query_row(
+        r#"SELECT
+            SUM(n_trades),
+            SUM(total_volume_usd),
+            SUM(avg_taker_excess_return * n_trades) / SUM(n_trades),
+            SUM(avg_maker_excess_return * n_trades) / SUM(n_trades)
+        FROM agg_calibration_per_cent"#,
+        [],
+        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, f64>(1).unwrap_or(0.0), row.get::<_, f64>(2).unwrap_or(0.0), row.get::<_, f64>(3).unwrap_or(0.0))),
+    )?;
 
     Ok(MakerTakerResponse {
         points,

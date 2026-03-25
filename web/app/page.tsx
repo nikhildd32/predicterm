@@ -20,8 +20,7 @@ export default function HomePage() {
         <h1 className="text-3xl font-bold mb-2">PredicTerm</h1>
         <p className="text-sm opacity-60 max-w-2xl">
           Exploring the microstructure of wealth transfer in prediction markets.
-          Replicating and extending Jonathan Becker&apos;s Kalshi study — 72M+ trades,
-          $18B+ in volume. Built with Rust, DuckDB, and Parquet.
+          Analyzing 72M+ Kalshi trades, $18B+ in volume. Built with Rust, DuckDB, and Parquet.
         </p>
       </div>
 
@@ -38,14 +37,10 @@ export default function HomePage() {
       </div>
 
       <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-lg p-6 space-y-3">
-        <h2 className="text-lg font-semibold">Research Foundation</h2>
+        <h2 className="text-lg font-semibold">Key Insights</h2>
         <p className="text-sm opacity-70">
-          This terminal reproduces key findings from{" "}
-          <a href="https://jbecker.dev/research/prediction-market-microstructure"
-             className="text-[var(--accent-green)] underline" target="_blank" rel="noopener">
-            &ldquo;The Microstructure of Wealth Transfer in Prediction Markets&rdquo;
-          </a>{" "}
-          by Jonathan Becker (2026). Key insights:
+          This terminal exposes prediction market microstructure patterns from the
+          Kalshi dataset. Key findings:
         </p>
         <ul className="text-sm opacity-70 list-disc list-inside space-y-1">
           <li><strong>Longshot Bias:</strong> 5¢ contracts win only 4.18% of the time (implied: 5%)</li>

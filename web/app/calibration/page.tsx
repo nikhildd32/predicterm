@@ -16,8 +16,8 @@ export default function CalibrationPage() {
       <div>
         <h1 className="text-2xl font-bold mb-1">Longshot Bias / Calibration Curve</h1>
         <p className="text-sm opacity-60">
-          Becker Figure 1 — implied vs realized probability. Points below the 45° line
-          indicate overpricing (longshot bias). Contracts at 5¢ win only 4.18% of the time.
+          Implied vs realized probability. Points below the 45° line indicate overpricing
+          (longshot bias). Low-probability contracts consistently win less than their price implies.
         </p>
       </div>
 

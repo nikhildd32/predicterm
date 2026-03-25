@@ -2,28 +2,25 @@ use anyhow::Result;
 use duckdb::Connection;
 
 use crate::models::{CalibrationPoint, CalibrationResponse, FilterParams};
-use super::{build_filter_summary, build_where_clause};
+use super::build_filter_summary;
 
-/// Longshot bias calibration curve (Becker Figure 1, spec §2.1)
 pub fn query_calibration(conn: &Connection, params: &FilterParams) -> Result<CalibrationResponse> {
     let bucket_width = params.bucket_width.unwrap_or(10) as i32;
-    let where_clause = build_where_clause(params);
 
     let sql = format!(
         r#"
         SELECT
-            CAST(FLOOR((taker_price - 1) / {bucket_width}) * {bucket_width} + 1 AS INTEGER) AS bucket_low,
-            CAST(FLOOR((taker_price - 1) / {bucket_width}) * {bucket_width} + {bucket_width} AS INTEGER) AS bucket_high,
-            COUNT(*) AS n_trades,
-            SUM(count) AS n_contracts,
-            SUM(taker_notional) / 100.0 AS total_volume_usd,
-            AVG(taker_price / 100.0) AS implied_probability,
-            AVG(taker_won::DOUBLE) AS realized_win_rate,
-            AVG(taker_won::DOUBLE) - AVG(taker_price / 100.0) AS mispricing,
-            AVG((taker_won * 100.0 - taker_price) / taker_price) AS avg_excess_return
-        FROM enriched_trades
-        WHERE {where_clause}
-        GROUP BY FLOOR((taker_price - 1) / {bucket_width})
+            CAST(FLOOR((price_cent - 1) / {bucket_width}) * {bucket_width} + 1 AS INTEGER) AS bucket_low,
+            CAST(FLOOR((price_cent - 1) / {bucket_width}) * {bucket_width} + {bucket_width} AS INTEGER) AS bucket_high,
+            SUM(n_trades) AS n_trades,
+            SUM(n_contracts) AS n_contracts,
+            SUM(total_volume_usd) AS total_volume_usd,
+            SUM(implied_probability * n_trades) / SUM(n_trades) AS implied_probability,
+            SUM(realized_win_rate * n_trades) / SUM(n_trades) AS realized_win_rate,
+            SUM(mispricing * n_trades) / SUM(n_trades) AS mispricing,
+            SUM(avg_taker_excess_return * n_trades) / SUM(n_trades) AS avg_excess_return
+        FROM agg_calibration_per_cent
+        GROUP BY FLOOR((price_cent - 1) / {bucket_width})
         ORDER BY bucket_low
         "#
     );
@@ -45,25 +42,11 @@ pub fn query_calibration(conn: &Connection, params: &FilterParams) -> Result<Cal
 
     let points: Vec<CalibrationPoint> = rows.filter_map(|r| r.ok()).collect();
 
-    // Brier score and MAE (spec §2.7)
-    let scoring_sql = format!(
-        r#"
-        SELECT
-            COUNT(*) AS total_trades,
-            AVG(POW(yes_price / 100.0 - CASE WHEN result = 'yes' THEN 1.0 ELSE 0.0 END, 2)) AS brier_score,
-            AVG(ABS(yes_price / 100.0 - CASE WHEN result = 'yes' THEN 1.0 ELSE 0.0 END)) AS mae
-        FROM enriched_trades
-        WHERE {where_clause}
-        "#
-    );
-
-    let (total_trades, brier, mae) = conn.query_row(&scoring_sql, [], |row| {
-        Ok((
-            row.get::<_, i64>(0)?,
-            row.get::<_, f64>(1).unwrap_or(0.0),
-            row.get::<_, f64>(2).unwrap_or(0.0),
-        ))
-    })?;
+    let (total_trades, brier, mae) = conn.query_row(
+        "SELECT SUM(n_trades), SUM(brier * n_trades) / SUM(n_trades), SUM(mae * n_trades) / SUM(n_trades) FROM agg_calibration_per_cent",
+        [],
+        |row| Ok((row.get::<_, i64>(0)?, row.get::<_, f64>(1).unwrap_or(0.0), row.get::<_, f64>(2).unwrap_or(0.0))),
+    )?;
 
     Ok(CalibrationResponse {
         points,
